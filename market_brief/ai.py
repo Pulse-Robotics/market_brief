@@ -7,7 +7,7 @@ import time
 from google import genai
 from google.genai import errors as genai_errors
 
-import config
+from . import config
 
 RETRYABLE_CODES = {429, 500, 502, 503, 504}
 BACKOFF = [5, 15, 45]  # seconds between attempts, per model

@@ -1,9 +1,7 @@
 """Sector and market-cap balance vs the market, plus AI ideas by cap tier."""
 from collections import defaultdict
 
-import ai
-import config
-import market
+from . import ai, config, market
 
 TIERS = ("large", "mid", "small")
 IDEAS_PER_TIER = 2

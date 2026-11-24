@@ -1,144 +1,133 @@
 # Market Brief
 
+[![tests](https://github.com/Pulse-Robotics/market_brief/actions/workflows/tests.yml/badge.svg)](https://github.com/Pulse-Robotics/market_brief/actions/workflows/tests.yml)
+
 A daily portfolio brief posted to Discord before the US market opens.
 
-Each run:
+Each weekday morning it:
 
 1. Reads your holdings from a Yahoo Finance portfolio export
 2. Pulls fresh prices, previous closes and company-specific headlines from Yahoo
-3. Has Gemini write a short summary of what moved and why
-4. Compares your sector mix with the S&P 500, breaks down large/mid/small cap exposure,
-   and suggests stocks to research in each cap tier
-5. Renders the holdings and sector tables as one image, since Discord can't display Markdown tables
-6. Posts one Markdown message with the image attached to a Discord channel through a webhook
+3. Has Gemini write one short note per holding explaining the move, using only the headlines
+4. Breaks down your **sector** mix vs the S&P 500 and your **large / mid / small cap** mix
+5. Suggests stocks to research in each cap tier that would fill your gaps
+6. Posts one Discord message with the commentary and an image of the tables
 
-Example post (illustrative numbers; the table image is attached below the text):
+![Sample brief card](img/sample_card.png)
+
+*Sample made from the example portfolio with placeholder prices.*
+
+The message text looks like this:
 
 ```
 ## 📈 Morning Brief · Tue Nov 24
-> $25,000.00 · 🔴 -$410.00 (-1.61%) last session · 🟢 +$3,150.00 (+14.42%) total
+> $21,800.66 · 🔴 -$247.86 (-1.12%) last session · 🟢 +$8,523.96 (+64.20%) total
 
-Chip names sold off while defense and staples held up.
+Mega-cap tech led while banks and the broad index slipped.
 
-- 🔻 NVDA -6.10% · Questions over management persist after a leadership change.
-- 🔺 LMT +2.40% · Included in an analyst's bullish defense call.
-- 🔺 PG +0.80% · No specific news.
+- 🔺 MSFT +0.52% · No specific news.
+- 🔻 NVDA -7.72% · Questions over management persist after a leadership change.
+- 🔻 JPM -0.69% · Cut net interest income guidance at an investor conference.
+...
 
 ### ⚖️ Balance
-- Tech at 45% vs 33% market while the sector ETF fell 8% this month.
+- Tech at 54% vs 38% market while the sector ETF fell 17% this month.
 
 ### 💡 Ideas to research
 Large cap
-- JPM · Fills the financials gap; largest US bank by assets.
+- UNH · Adds healthcare; largest US health insurer.
 Mid cap
 - ...
 Small cap
 - ...
 ```
 
-The image has three tables:
-- **Holdings**: price, day %, weight bar, gain since purchase
-- **Market Cap**: your weight in large / mid / small caps, which holdings sit in each, and the
-  1-month move of SPY / MDY / IWM
-- **Sector Balance**: your weight vs the market, an over/under bar, and the sector ETF's 1-month move
+> This is a personal tool. Summaries and ideas are AI-generated from limited data (prices,
+> headlines and sector weights, no fundamentals) and are **not financial advice**.
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/Pulse-Robotics/market_brief.git
+cd market_brief
+python3 -m venv .venv
+source .venv/bin/activate            # Windows: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+cp .env.example .env                 # add your Gemini key and Discord webhook
+# export your Yahoo Finance portfolio to portfolio/portfolio.csv
+
+python main.py --dry-run             # print the brief, save img/brief_card.png
+python main.py                       # post to Discord
+```
+
+If PowerShell blocks activation, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+first, or skip activation and use `.venv\Scripts\python main.py`.
 
 ---
 
 ## Setup
 
-### Requirements
+### Discord webhook
 
-- Python 3.10+
-- A Discord server and channel you control
-- A free Gemini API key
+In your server, open a channel's settings and go to **Integrations → Webhooks → New Webhook → Copy Webhook URL**.
+Treat the URL like a password: anyone who has it can post to the channel. If it leaks, delete the webhook
+and make a new one.
 
-### 1. Get the project and install dependencies
+### Gemini API key
 
-**Linux / macOS**
-```bash
-git clone <your-repo-url> market_brief
-cd market_brief
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+Create one at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Check in AI Studio which
+Flash / Flash-Lite models are currently free, since model names change over time.
 
-**Windows (PowerShell)**
-```powershell
-git clone <your-repo-url> market_brief
-cd market_brief
-python -m venv .venv
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass   # only if activation is blocked
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+The free tier often returns `503` at busy times, and Google may use free-tier prompts to improve its
+products. Linking billing moves you to the paid tier, which gets priority. Google AI Pro subscribers
+get monthly Cloud credits that cover this many times over. Either way, the script sends Gemini only
+percent changes, weights and headlines, never dollar amounts or share counts.
 
-If script execution can't be enabled, skip activation and call the venv's Python directly:
-`.venv\Scripts\python market_brief.py`.
-
-### 2. Create a Discord webhook
-
-1. In your server, open the channel's settings and go to **Integrations → Webhooks → New Webhook**.
-2. Name it (e.g. "Market Brief Bot") and click **Copy Webhook URL**.
-
-Treat the URL like a password. Anyone who has it can post to your channel.
-
-### 3. Get a Gemini API key
-
-1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and sign in with a personal Google account.
-2. Click **Create API key**.
-3. In AI Studio, check which Flash / Flash-Lite models are currently on the free tier. Model names change over time.
-
-> Free-tier prompts may be used by Google to improve its products. The script sends Gemini
-> only percent changes, portfolio weights and headlines, never dollar amounts or share counts.
-
-### 4. Configure `.env`
-
-```bash
-cp .env.example .env
-```
+### `.env`
 
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
 | `GEMINI_API_KEY` | yes | — | Gemini API key |
-| `DISCORD_WEBHOOK` | yes | — | Discord webhook URL |
+| `DISCORD_WEBHOOK` | yes* | — | Discord webhook URL (*not needed for `--dry-run`) |
 | `GEMINI_MODELS` | no | `gemini-3.5-flash-lite,gemini-3.1-flash-lite` | Models to try, in order. The rest are fallbacks |
-| `HOLDINGS_FILE` | no | `portfolio.csv` | Portfolio export file name |
+| `HOLDINGS_FILE` | no | `portfolio/portfolio.csv` | Portfolio export, relative to the repo root |
 | `BENCHMARK` | no | `SPY` | Fund whose sector mix counts as "the market" |
-| `RECOMMENDATIONS` | no | `1` | Set to `0` to turn off sector balance and ideas |
-| `SUGGESTIONS` | no | `stocks` | Kind of ideas to suggest: `stocks`, `etfs` or `mixed` |
+| `RECOMMENDATIONS` | no | `1` | `0` turns off sector/cap analysis and ideas |
+| `SUGGESTIONS` | no | `stocks` | Kind of ideas: `stocks`, `etfs` or `mixed` |
 
-### 5. Add your portfolio
+### Portfolio file
 
-1. In Yahoo Finance, open your portfolio and choose **Export**.
-2. Save the file in the project folder as `portfolio.csv`.
+In Yahoo Finance, open your portfolio, choose **Export**, and save the file as `portfolio/portfolio.csv`.
+See [`portfolio/portfolio.example.csv`](portfolio/portfolio.example.csv) for the format.
 
-The parser reads only the `Symbol`, `Purchase Price` and `Quantity` columns. Other columns are ignored,
-because their prices are frozen at export time. Lots of the same ticker are combined, with a weighted cost
-basis. Rows with no quantity (watchlist-only symbols) are skipped. Comma- and tab-separated files both work.
+- Only `Symbol`, `Purchase Price` and `Quantity` are read. Prices in the export are ignored, because they're frozen at export time.
+- Multiple lots of the same ticker are combined, with a weighted cost basis.
+- Rows with no quantity (watchlist-only symbols) are skipped.
+- Comma- and tab-separated files both work.
 
-**Re-export after every buy, sell or stock split.** Yahoo portfolio lots are entered by hand and don't always
-adjust for splits, so check share counts against your brokerage after a split.
+**Re-export after every buy, sell or stock split.** Yahoo lots are entered by hand and don't always adjust
+for splits. Your real `portfolio/portfolio.csv` is git-ignored.
 
 ---
 
 ## Usage
 
 ```bash
-python market_brief.py --dry-run   # print the text and save brief_card.png, post nothing
-python market_brief.py             # build and post to Discord
-python market_brief.py --force     # run even if the market is closed today
+python main.py --dry-run   # print the text and save img/brief_card.png, post nothing
+python main.py             # build and post to Discord
+python main.py --force     # run even if the market is closed today
 ```
 
-On NYSE holidays and weekends the script exits without posting. On early-close days (like the day
-after Thanksgiving) the brief says so in the header. If a run crashes, it posts a short
-**⚠️ Market brief failed** message with the error to the same channel, so failures aren't silent.
+- **Market holidays and weekends** are skipped using the NYSE calendar. Early-close days get a note in the header.
+- **If a run crashes**, it posts a short **⚠️ Market brief failed** message to the same channel, with the webhook token redacted.
+- **If Gemini is down**, the brief still posts with the numbers and no commentary.
 
-Always try `--dry-run` first after changing anything.
+### Schedule it (Linux)
 
-### Schedule it (Linux server)
-
-Run every weekday at 9:00 AM Eastern, 30 minutes before the open:
+Every weekday at 9:00 AM Eastern, 30 minutes before the open:
 
 ```bash
 crontab -e
@@ -146,54 +135,67 @@ crontab -e
 
 ```
 CRON_TZ=America/New_York
-0 9 * * 1-5 cd /path/to/market_brief && .venv/bin/python market_brief.py >> brief.log 2>&1
+0 9 * * 1-5 cd /path/to/market_brief && .venv/bin/python main.py >> logs/brief.log 2>&1
 ```
 
-`CRON_TZ` keeps the run at 9:00 Eastern through daylight-saving changes. Check `brief.log` if a brief
-doesn't arrive.
-
+`CRON_TZ` keeps it at 9:00 Eastern through daylight-saving changes. `logs/` is git-ignored.
 
 ---
 
-## Project structure
+## Project layout
 
 ```
 market_brief/
-├── market_brief.py      # entry point: runs everything in order
-├── config.py            # loads .env settings
-├── portfolio.py         # parses the Yahoo portfolio export
-├── market.py            # all Yahoo Finance calls: prices, headlines, sectors, momentum
-├── ai.py                # Gemini calls: retries, model fallback, JSON mode
-├── brief.py             # the daily "what moved and why" summary
-├── recommendations.py   # sector balance vs market, ideas to research
-├── trading_day.py       # NYSE calendar: holidays and early closes
-├── render.py            # draws the holdings and sector tables as a PNG
-├── notify.py            # composes the Discord message and uploads the image
+├── main.py                    # entry point
+├── market_brief/              # the package
+│   ├── config.py              # .env settings and setup checks
+│   ├── portfolio.py           # parses the Yahoo portfolio export
+│   ├── market.py              # Yahoo Finance: prices, headlines, sectors, cap tiers, momentum
+│   ├── ai.py                  # Gemini: retries, model fallback, JSON mode
+│   ├── summary.py             # per-holding commentary
+│   ├── recommendations.py     # sector + cap balance, ideas by tier
+│   ├── render.py              # draws the table image
+│   ├── notify.py              # Discord message, image upload, failure alerts
+│   └── trading_day.py         # NYSE holidays and early closes
+├── portfolio/                 # your export goes here (git-ignored); example included
+├── img/                       # generated image (git-ignored) + README sample
+├── logs/                      # cron logs (git-ignored)
+├── tests/                     # pytest
 ├── requirements.txt
-├── .env.example
-└── .gitignore           # keeps .env and portfolio.csv out of git
+├── requirements-dev.txt       # adds pytest
+└── .env.example
 ```
 
-### How the pieces work
+### How it works
 
 - **Prices** come from Yahoo's quote fields (`regularMarketPrice` / `regularMarketPreviousClose`). These
   are split-aware. Daily history is used only as a fallback, because it can have gaps around corporate actions.
-- **Headlines** are filtered to ones that mention the ticker or the company name (looked up from Yahoo),
-  because Yahoo's per-ticker news often includes unrelated stories.
-- **Sectors**: each stock gets its Yahoo sector. ETFs and funds are looked through to their underlying
-  sector mix. The benchmark's sector mix is pulled live.
-- **Sentiment** uses each SPDR sector ETF's 5-day and 1-month change (XLK, XLV, XLF, …).
-- **Gemini** calls retry busy and rate-limit errors (5s, 15s, 45s), then move to the next model in
-  `GEMINI_MODELS`. If every model fails, later calls in the same run skip straight to the fallback,
-  and the brief still posts with the raw numbers.
-- **Market cap** tiers: large >$10B, mid $2–10B, small $300M–2B, micro below that. Stocks use Yahoo's
-  market cap. Funds use Yahoo's category ("Large Blend", "Mid-Cap Growth", ...).
-- **Suggestions** come in three tiers: 2 large, 2 mid and 2 small cap. Every ticker is checked on Yahoo
-  and filed under its *actual* tier, whatever the AI labeled it. Tickers that don't exist, that you already
-  own, that are micro caps, or that aren't the configured type (e.g. an ETF when `SUGGESTIONS=stocks`)
-  are dropped.
-- **The table image** is drawn with matplotlib on a dark theme and saved as `brief_card.png` on each run.
-  If rendering fails, the text still posts.
+- **Headlines** are filtered to ones that mention the ticker or the company name, because Yahoo's per-ticker
+  news often includes unrelated stories.
+- **Commentary**: Gemini returns one note of up to 12 words per ticker as JSON. Python builds the bullets, so
+  every holding appears exactly once, in weight order, with numbers from the data and not the model. The prompt
+  forbids inventing causes that aren't in a headline. Temperature is 0.2 so runs stay consistent.
+- **Sectors**: stocks use Yahoo's sector, and ETFs are looked through to their holdings. The benchmark's sector
+  mix is pulled live. Sentiment uses each SPDR sector ETF's 1-month move.
+- **Market cap**: large is over $10B, mid $2–10B, small $300M–2B. Funds use Yahoo's category ("Large Blend", ...).
+  Size sentiment uses SPY / MDY / IWM.
+- **Ideas**: Gemini proposes 3 per tier. Each one is checked on Yahoo and filed under its *actual* market-cap
+  tier, and 2 per tier are kept. Tickers that don't exist, that you already own, micro caps, and the wrong type
+  (e.g. ETFs when `SUGGESTIONS=stocks`) are dropped.
+- **Resilience**: busy and rate-limit errors are retried (5s, 15s, 45s) before moving to the next model. If
+  every model fails, later calls in the same run skip straight to the fallback.
+
+---
+
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+The tests cover portfolio parsing, cap tiers, headline matching, message splitting and token redaction.
+They run on every push through GitHub Actions.
 
 ---
 
@@ -201,15 +203,13 @@ market_brief/
 
 | Symptom | Cause / fix |
 |---|---|
-| `API key not valid` | Wrong or placeholder key in `.env`. The file always overrides terminal variables |
-| `503 UNAVAILABLE` in the log | Gemini's free tier is busy. The script retries automatically. Linking billing (Google AI Pro includes monthly credits) moves you to the paid tier, which gets priority |
+| `Can't run yet: Missing in .env ...` | Copy `.env.example` to `.env` and fill in the values |
+| `Portfolio file not found` | Export from Yahoo to `portfolio/portfolio.csv` |
+| `API key not valid` | Wrong key in `.env`. The file always overrides terminal variables |
+| `503 UNAVAILABLE` retries | Gemini's free tier is busy. It retries automatically. Linking billing fixes it for good |
 | `model not found` | Update `GEMINI_MODELS` to names AI Studio currently lists |
-| `No price data from Yahoo: XYZ` | Run `python -c "import yfinance as yf; print(yf.Ticker('XYZ').history(period='5d'))"`. If it's empty, run `pip install -U yfinance` |
-| Wrong daily % right after a split | Re-export the portfolio and confirm share counts match your brokerage |
-| `running scripts is disabled` (Windows) | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`, or call `.venv\Scripts\python` directly |
+| `No price data from Yahoo: XYZ` | `pip install -U yfinance`. Yahoo changes its API often |
+| Wrong daily % right after a split | Re-export the portfolio and check share counts against your brokerage |
+| `SSL handshake failure` posting to Discord | Your network (often a firewall) blocks Discord. Run from another network |
 | Nothing posted on a weekday | Check whether it was an NYSE holiday (the log says "Market closed today") |
-| Nothing posts from cron | Check `brief.log`, and confirm the cron line uses the venv's Python and `cd`s into the project |
-
----
-
-*This is a personal tool. The summaries and ideas are AI-generated from limited data and are not financial advice.*
+| Nothing posts from cron | Check `logs/brief.log`, and confirm the cron line `cd`s into the repo and uses `.venv/bin/python` |

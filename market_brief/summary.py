@@ -4,7 +4,7 @@ The AI only writes words (a takeaway line and one short note per ticker).
 Python builds the bullets, so every holding appears exactly once, in weight
 order, with numbers taken from the data rather than from the model.
 """
-import ai
+from . import ai
 
 PROMPT = """You are writing notes for a morning portfolio brief, read on a phone before the US market opens.
 The data is the previous session's close plus recent headlines for each holding.

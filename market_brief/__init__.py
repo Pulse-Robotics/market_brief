@@ -1,0 +1,1 @@
+"""Daily portfolio brief: Yahoo Finance data, Gemini commentary, Discord delivery."""

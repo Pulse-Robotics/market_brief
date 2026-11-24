@@ -1,6 +1,16 @@
+# secrets
 .env
+
+# your real holdings (the example file is committed)
+portfolio/*
+!portfolio/portfolio.example.csv
+
+# generated output
+img/brief_card.png
+logs/*
+!logs/.gitkeep
+
+# python
 .venv/
 __pycache__/
-portfolio.csv
-brief_card.png
-brief.log
+.pytest_cache/

@@ -1,0 +1,11 @@
+Symbol,Current Price,Date,Time,Change,Open,High,Low,Volume,Trade Date,Purchase Price,Quantity,Commission,High Limit,Low Limit,Comment,Transaction Type
+AAPL,,,,,,,,,2023/03/14,152.10,15,,,,,
+MSFT,,,,,,,,,2022/11/02,228.40,8,,,,,
+NVDA,,,,,,,,,2024/01/10,54.30,20,,,,,
+JPM,,,,,,,,,2023/06/21,140.75,10,,,,,
+XOM,,,,,,,,,2024/05/08,117.20,12,,,,,
+PG,,,,,,,,,2022/09/15,139.90,9,,,,,
+VOO,,,,,,,,,2021/12/01,420.00,6,,,,,
+AMZN,,,,,,,,,2024/08/05,161.00,5,,,,,
+AMZN,,,,,,,,,2025/02/20,228.00,3,,,,,
+SPY,,,,,,,,,,,,,,,watchlist only (no quantity) - skipped,

@@ -9,7 +9,7 @@ from datetime import datetime
 
 import requests
 
-import config
+from . import config
 
 LIMIT = 1990
 FOOTER = ("-# AI-generated from prices and headlines · Ideas to research, not financial advice"

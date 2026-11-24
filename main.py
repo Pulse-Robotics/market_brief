@@ -1,21 +1,18 @@
 """Morning portfolio brief -> Discord.
 
 Usage:
-    python market_brief.py            # build and post to Discord
-    python market_brief.py --dry-run  # print text and save the image, post nothing
-    python market_brief.py --force    # run even if the market is closed today
+    python main.py            # build and post to Discord
+    python main.py --dry-run  # print text and save img/brief_card.png, post nothing
+    python main.py --force    # run even if the market is closed today
 """
 import sys
 import traceback
 
-import config
-import market
-import notify
-import render
-from brief import write_brief
-from portfolio import load_holdings
-from recommendations import build_recommendations
-from trading_day import today_session
+from market_brief import config, market, notify, render
+from market_brief.portfolio import load_holdings
+from market_brief.recommendations import build_recommendations
+from market_brief.summary import write_brief
+from market_brief.trading_day import today_session
 
 
 def run(dry_run=False, force=False):
@@ -62,6 +59,12 @@ def run(dry_run=False, force=False):
 def main():
     dry_run = "--dry-run" in sys.argv
     force = "--force" in sys.argv
+
+    issues = config.problems(need_webhook=not dry_run)
+    if issues:
+        print("Can't run yet:\n" + "\n".join(f"  - {i}" for i in issues))
+        sys.exit(2)
+
     try:
         run(dry_run, force)
     except Exception as e:

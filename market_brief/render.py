@@ -4,6 +4,7 @@ Discord can't display Markdown tables, so the numbers go in an image and
 the message text carries the AI commentary.
 """
 from datetime import datetime
+from pathlib import Path
 
 import matplotlib
 
@@ -11,8 +12,7 @@ matplotlib.use("Agg")  # headless: no display needed on the server
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.patches import FancyBboxPatch, Rectangle  # noqa: E402
 
-import config  # noqa: E402
-import market  # noqa: E402
+from . import config, market  # noqa: E402
 
 # Dark theme that sits well in Discord
 BG = "#15171c"
@@ -211,6 +211,7 @@ def render_card(rows, sector_table, path, cap_table=None):
     ax.text(LEFT, y + FOOT / 2 + 6, f"{d:%a %b} {d.day}, {d:%Y}  ·  Prices: Yahoo Finance",
             color=MUTED, fontsize=9.5, va="center", ha="left")
 
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=200, facecolor=BG)
     plt.close(fig)
     return path
