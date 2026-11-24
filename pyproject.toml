@@ -31,6 +31,9 @@ Repository = "https://github.com/Pulse-Robotics/market_brief"
 [tool.setuptools.packages.find]
 include = ["market_brief*"]
 
+[tool.setuptools.package-data]
+market_brief = ["templates/*"]
+
 [tool.setuptools_scm]
 fallback_version = "0.0.0"  # used only when there is no git history (e.g. a zip download)
 

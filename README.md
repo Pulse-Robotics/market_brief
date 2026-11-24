@@ -13,7 +13,7 @@ Each weekday morning it:
 5. Suggests stocks to research in each cap tier that would fill your gaps
 6. Posts one Discord message with the commentary and an image of the tables
 
-![Sample brief card](img/sample_card.png)
+![Sample brief card](https://raw.githubusercontent.com/Pulse-Robotics/market_brief/main/img/sample_card.png)
 
 *Sample made from the example portfolio with placeholder prices.*
 
@@ -68,15 +68,23 @@ first, or skip activation and use `.venv\Scripts\python main.py`.
 
 ### Install as a package
 
-You can also install it with pip, straight from GitHub, and pin a release:
+You can also install it with pip:
 
 ```bash
-pip install "market-brief @ git+https://github.com/Pulse-Robotics/market_brief.git@v1.0.0"
+pip install market-brief        # latest release from PyPI (or pin: "market-brief==1.0.2")
+
+mkdir my-brief && cd my-brief
+market-brief init               # creates .env, portfolio/, img/, logs/ here (never overwrites)
+# fill in .env, export your Yahoo portfolio to portfolio/portfolio.csv
 market-brief --dry-run
 ```
 
+Or straight from GitHub at a release tag:
+`pip install "market-brief @ git+https://github.com/Pulse-Robotics/market_brief.git@v1.0.2"`
+
 When installed this way, `.env`, `portfolio/`, `img/` and `logs/` are read from the current directory,
-or from `MARKET_BRIEF_HOME` if you set it. The modules can also be imported as a library
+or from `MARKET_BRIEF_HOME` if you set it. In cron, `cd` into that folder first
+(`cd /path/to/my-brief && /path/to/venv/bin/market-brief`). The modules can also be imported as a library
 (`from market_brief import market, ai`).
 
 ---
@@ -114,7 +122,7 @@ percent changes, weights and headlines, never dollar amounts or share counts.
 ### Portfolio file
 
 In Yahoo Finance, open your portfolio, choose **Export**, and save the file as `portfolio/portfolio.csv`.
-See [`portfolio/portfolio.example.csv`](portfolio/portfolio.example.csv) for the format.
+See [`portfolio/portfolio.example.csv`](https://github.com/Pulse-Robotics/market_brief/blob/main/portfolio/portfolio.example.csv) for the format.
 
 - Only `Symbol`, `Purchase Price` and `Quantity` are read. Prices in the export are ignored, because they're frozen at export time.
 - Multiple lots of the same ticker are combined, with a weighted cost basis.
@@ -162,7 +170,9 @@ market_brief/
 ├── main.py                    # entry point from a checkout (pip install gives `market-brief`)
 ├── pyproject.toml             # packaging: pip install, `market-brief` command
 ├── market_brief/              # the package
-│   ├── cli.py                 # command-line entry point
+│   ├── cli.py                 # command-line entry point (`market-brief`, `market-brief init`)
+│   ├── home.py                # `init`: sets up a working folder for pip installs
+│   ├── templates/             # .env and portfolio examples bundled for `init`
 │   ├── config.py              # .env settings and setup checks
 │   ├── portfolio.py           # parses the Yahoo portfolio export
 │   ├── market.py              # Yahoo Finance: prices, headlines, sectors, cap tiers, momentum
@@ -209,8 +219,8 @@ pip install -e ".[dev]"
 pytest -q
 ```
 
-Releases are git tags (`v1.0.0`, `v1.1.0`, ...). Pin a tag when installing with pip, so updates
-to `main` only reach you when you choose to upgrade.
+Versions come from git tags (`v1.0.2` → `1.0.2`) via setuptools-scm. Publishing a GitHub Release from a
+tag builds the package and uploads it to PyPI automatically (`.github/workflows/publish.yml`).
 
 The tests cover portfolio parsing, cap tiers, headline matching, message splitting and token redaction.
 They run on every push through GitHub Actions, which also checks that the package installs.

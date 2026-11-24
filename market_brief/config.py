@@ -41,18 +41,25 @@ RECOMMENDATIONS = os.getenv("RECOMMENDATIONS", "1") != "0"
 SUGGESTIONS = os.getenv("SUGGESTIONS", "stocks").strip().lower()
 
 
+def _is_placeholder(value):
+    """Empty, or still the template's example value."""
+    return not value or value.startswith("your_") or value.endswith("...")
+
+
 def problems(need_webhook=True):
     """Setup problems as readable messages; empty list means ready to run."""
     out = []
     missing = [name for name, value, needed in (
         ("GEMINI_API_KEY", GEMINI_API_KEY, True),
         ("DISCORD_WEBHOOK", DISCORD_WEBHOOK, need_webhook),
-    ) if needed and not value]
-    if missing:
-        out.append(f"Missing in .env: {', '.join(missing)}. Copy .env.example to .env and fill it in.")
+    ) if needed and _is_placeholder(value)]
+    if not (BASE / ".env").exists() and missing:
+        out.append(f"No .env in {BASE}. Run `market-brief init` here, or copy .env.example to .env.")
+    elif missing:
+        out.append(f"Fill in .env: {', '.join(missing)}.")
     if not HOLDINGS_FILE.exists():
         out.append(
             f"Portfolio file not found: {HOLDINGS_FILE.relative_to(BASE)}. Export your portfolio "
-            "from Yahoo Finance (see portfolio/portfolio.example.csv for the format)."
+            "from Yahoo Finance (format: portfolio/portfolio.example.csv; `market-brief init` creates it)."
         )
     return out
