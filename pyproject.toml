@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "market-brief"
-version = "1.0.0"
+dynamic = ["version"]  # taken from the latest git tag (v1.0.1 -> 1.0.1)
 description = "Daily portfolio brief for Discord: Yahoo Finance data, Gemini commentary, sector and market-cap balance."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,6 +30,9 @@ Repository = "https://github.com/Pulse-Robotics/market_brief"
 
 [tool.setuptools.packages.find]
 include = ["market_brief*"]
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"  # used only when there is no git history (e.g. a zip download)
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

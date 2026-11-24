@@ -14,13 +14,14 @@ from . import config
 LIMIT = 1990
 FOOTER = ("-# AI-generated from prices and headlines · Ideas to research, not financial advice"
           " · Smaller caps tend to be more volatile")
+SHORT_FOOTER = "-# AI-generated · Not financial advice"
 
 
 def money(x):
     return f"{'+' if x >= 0 else '-'}${abs(x):,.2f}"
 
 
-def compose(brief_text, t, recs=None, missing=(), session=None):
+def _render(brief_text, t, recs, missing, session, footer):
     d = datetime.now()
     day = "🟢" if t["chg"] >= 0 else "🔴"
     gain = "🟢" if t["gain"] >= 0 else "🔴"
@@ -46,8 +47,47 @@ def compose(brief_text, t, recs=None, missing=(), session=None):
         parts.append(f"-# Couldn't load {config.BENCHMARK} sector weights today.")
     if missing:
         parts.append(f"-# ⚠️ No price data from Yahoo: {', '.join(missing)}")
-    parts += ["", FOOTER]
+    parts += ["", footer]
     return "\n".join(parts)
+
+
+def _trimmed(recs, notes, ideas_per_tier):
+    """Copy of recs with fewer balance notes / ideas."""
+    if not recs:
+        return recs
+    return {**recs,
+            "notes": recs["notes"][:notes],
+            "ideas": {tier: picks[:ideas_per_tier] for tier, picks in recs["ideas"].items()}}
+
+
+# Tried in order until the message fits in one Discord post.
+# Each step gives up a little more of the optional sections; holdings bullets are never cut.
+FIT_STEPS = [
+    # (balance notes, ideas per tier, footer)
+    (None, None, FOOTER),
+    (2, None, FOOTER),
+    (2, None, SHORT_FOOTER),
+    (2, 1, SHORT_FOOTER),
+    (1, 1, SHORT_FOOTER),
+    (0, 1, SHORT_FOOTER),
+    (0, 0, SHORT_FOOTER),
+]
+
+
+def compose(brief_text, t, recs=None, missing=(), session=None, limit=LIMIT):
+    """Build the message, trimming optional sections so it stays a single post."""
+    text = ""
+    for notes, ideas, footer in FIT_STEPS:
+        variant = recs
+        if recs and (notes is not None or ideas is not None):
+            variant = _trimmed(recs,
+                               len(recs["notes"]) if notes is None else notes,
+                               max((len(p) for p in recs["ideas"].values()), default=0)
+                               if ideas is None else ideas)
+        text = _render(brief_text, t, variant, missing, session, footer)
+        if len(text) <= limit:
+            return text
+    return text  # still too long (huge portfolio): post() splits it safely
 
 
 def split_message(text, limit=LIMIT):
