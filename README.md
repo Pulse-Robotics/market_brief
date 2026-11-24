@@ -12,20 +12,28 @@ Each run:
 5. Renders the holdings and sector tables as one image, since Discord can't display Markdown tables
 6. Posts one Markdown message with the image attached to a Discord channel through a webhook
 
-Example post (the text, with a table image attached below it):
+Example post (illustrative numbers; the table image is attached below the text):
 
 ```
 ## 📈 Morning Brief · Tue Nov 24
-> $8,521.95 · 🔴 -$265.06 (-3.02%) last session · 🟢 +$17.96 (+0.21%) total
+> $25,000.00 · 🔴 -$410.00 (-1.61%) last session · 🟢 +$3,150.00 (+14.42%) total
 
-Semis led a sharp tech selloff while defense and retail held up.
-- NVDA -8.8% at a 13% weight is the main drag...
+Chip names sold off while defense and staples held up.
+
+- 🔻 NVDA -6.10% · Questions over management persist after a leadership change.
+- 🔺 LMT +2.40% · Included in an analyst's bullish defense call.
+- 🔺 PG +0.80% · No specific news.
 
 ### ⚖️ Balance
-- Tech at 44% vs 38% market while XLK fell 16.8% in a month...
+- Tech at 45% vs 33% market while the sector ETF fell 8% this month.
 
 ### 💡 Ideas to research
-- JPM · Fills the financials gap; largest US bank with diversified revenue.
+Large cap
+- JPM · Fills the financials gap; largest US bank by assets.
+Mid cap
+- ...
+Small cap
+- ...
 ```
 
 The image has three tables:
