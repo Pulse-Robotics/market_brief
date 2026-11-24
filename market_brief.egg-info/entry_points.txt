@@ -1,2 +1,0 @@
-[console_scripts]
-market-brief = market_brief.cli:main

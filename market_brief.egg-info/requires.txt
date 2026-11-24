@@ -1,9 +1,0 @@
-google-genai
-yfinance
-requests
-python-dotenv
-matplotlib>=3.9
-pandas_market_calendars
-
-[dev]
-pytest
