@@ -41,7 +41,7 @@ def build_notes(rows, total_value):
 
 
 def _bullet(r, note):
-    arrow = "🔺" if r["pct"] >= 0 else "🔻"
+    arrow = "🟢" if r["pct"] >= 0 else "🔴"
     return f"- {arrow} **{r['symbol']}** {r['pct']:+.2f}% · {note}"
 
 

@@ -2,7 +2,13 @@
 import math
 import re
 
+import logging
+
 import yfinance as yf
+
+# yfinance logs "possibly delisted" / HTTP 404 noise when we validate tickers that
+# don't exist. We handle missing data ourselves, so keep the cron log clean.
+logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
 # yfinance sector keys -> short display labels
 SECTOR_LABELS = {

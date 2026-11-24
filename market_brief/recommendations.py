@@ -41,6 +41,7 @@ Rules:
   Small: established small caps with real revenue, not speculative names.
   Real US-listed tickers only, sized correctly for their tier. Never suggest anything held.
   Reason max 12 words: which gap it fills and one concrete trait of the company.
+  Don't mention market-cap size in the reason; the section heading shows it.
 - These are ideas to research, not advice. No price targets, no buy/sell calls, no hype."""
 
 
