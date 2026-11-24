@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market-brief"
+version = "1.0.0"
+description = "Daily portfolio brief for Discord: Yahoo Finance data, Gemini commentary, sector and market-cap balance."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "google-genai",
+    "yfinance",
+    "requests",
+    "python-dotenv",
+    "matplotlib>=3.9",
+    "pandas_market_calendars",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+market-brief = "market_brief.cli:main"
+
+[project.urls]
+Repository = "https://github.com/Pulse-Robotics/market_brief"
+
+[tool.setuptools.packages.find]
+include = ["market_brief*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

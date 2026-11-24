@@ -66,6 +66,19 @@ python main.py                       # post to Discord
 If PowerShell blocks activation, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
 first, or skip activation and use `.venv\Scripts\python main.py`.
 
+### Install as a package
+
+You can also install it with pip, straight from GitHub, and pin a release:
+
+```bash
+pip install "market-brief @ git+https://github.com/Pulse-Robotics/market_brief.git@v1.0.0"
+market-brief --dry-run
+```
+
+When installed this way, `.env`, `portfolio/`, `img/` and `logs/` are read from the current directory,
+or from `MARKET_BRIEF_HOME` if you set it. The modules can also be imported as a library
+(`from market_brief import market, ai`).
+
 ---
 
 ## Setup
@@ -146,8 +159,10 @@ CRON_TZ=America/New_York
 
 ```
 market_brief/
-├── main.py                    # entry point
+├── main.py                    # entry point from a checkout (pip install gives `market-brief`)
+├── pyproject.toml             # packaging: pip install, `market-brief` command
 ├── market_brief/              # the package
+│   ├── cli.py                 # command-line entry point
 │   ├── config.py              # .env settings and setup checks
 │   ├── portfolio.py           # parses the Yahoo portfolio export
 │   ├── market.py              # Yahoo Finance: prices, headlines, sectors, cap tiers, momentum
@@ -190,12 +205,15 @@ market_brief/
 ## Development
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -e ".[dev]"
 pytest -q
 ```
 
+Releases are git tags (`v1.0.0`, `v1.1.0`, ...). Pin a tag when installing with pip, so updates
+to `main` only reach you when you choose to upgrade.
+
 The tests cover portfolio parsing, cap tiers, headline matching, message splitting and token redaction.
-They run on every push through GitHub Actions.
+They run on every push through GitHub Actions, which also checks that the package installs.
 
 ---
 

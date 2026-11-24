@@ -4,8 +4,15 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Repo root (this file lives in market_brief/)
-BASE = Path(__file__).resolve().parent.parent
+# Where .env, portfolio/, img/ and logs/ live:
+#   - MARKET_BRIEF_HOME if set
+#   - otherwise the repo root, when running from a checkout
+#   - otherwise the current directory (pip-installed package)
+_PKG_PARENT = Path(__file__).resolve().parent.parent
+BASE = Path(
+    os.getenv("MARKET_BRIEF_HOME")
+    or (_PKG_PARENT if (_PKG_PARENT / "main.py").exists() else Path.cwd())
+).resolve()
 load_dotenv(BASE / ".env", override=True)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()

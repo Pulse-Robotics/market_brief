@@ -1,79 +1,12 @@
-"""Morning portfolio brief -> Discord.
+"""Run the morning portfolio brief from a repo checkout.
 
-Usage:
     python main.py            # build and post to Discord
     python main.py --dry-run  # print text and save img/brief_card.png, post nothing
     python main.py --force    # run even if the market is closed today
+
+Installed with pip? Use the `market-brief` command instead.
 """
-import sys
-import traceback
-
-from market_brief import config, market, notify, render
-from market_brief.portfolio import load_holdings
-from market_brief.recommendations import build_recommendations
-from market_brief.summary import write_brief
-from market_brief.trading_day import today_session
-
-
-def run(dry_run=False, force=False):
-    session = today_session()
-    if session is None and not force:
-        print("Market closed today (NYSE holiday or weekend). No brief. Use --force to run anyway.")
-        return
-
-    rows = market.get_quotes(load_holdings(config.HOLDINGS_FILE))
-    t = market.totals(rows)
-    missing = [r["symbol"] for r in rows if not r["ok"]]
-
-    brief_text = write_brief(rows, t["value"])
-
-    recs = None
-    if config.RECOMMENDATIONS:
-        try:
-            recs = build_recommendations(rows)
-        except Exception as e:  # never let this section block the brief
-            print(f"Recommendations failed: {e}")
-
-    image = None
-    try:
-        image = render.render_card(
-            rows,
-            recs["table"] if recs else None,
-            config.CARD_FILE,
-            cap_table=recs["cap_table"] if recs else None,
-        )
-    except Exception as e:  # text still posts without the image
-        print(f"Table image failed: {e}")
-
-    text = notify.compose(brief_text, t, recs, missing, session)
-
-    if dry_run:
-        print(text)
-        print(f"\n[{len(text)} chars] Image: {image or 'none'}")
-        return
-
-    notify.post(text, image)
-    print("Brief sent.")
-
-
-def main():
-    dry_run = "--dry-run" in sys.argv
-    force = "--force" in sys.argv
-
-    issues = config.problems(need_webhook=not dry_run)
-    if issues:
-        print("Can't run yet:\n" + "\n".join(f"  - {i}" for i in issues))
-        sys.exit(2)
-
-    try:
-        run(dry_run, force)
-    except Exception as e:
-        tb = traceback.format_exc()
-        print(notify.redact(tb), file=sys.stderr)  # never print the webhook token
-        if not dry_run:
-            notify.post_alert(e, tb)  # so a broken run isn't silent
-        sys.exit(1)
-
+from market_brief.cli import main
 
 if __name__ == "__main__":
     main()
