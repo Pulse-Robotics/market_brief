@@ -1,0 +1,6 @@
+.env
+.venv/
+__pycache__/
+portfolio.csv
+brief_card.png
+brief.log
