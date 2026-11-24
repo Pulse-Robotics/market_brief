@@ -33,7 +33,9 @@ def generate(prompt, json_mode=False):
     if _down is not None:
         raise RuntimeError(f"Gemini unavailable this run (skipping retries): {_down}")
 
-    cfg = {"response_mime_type": "application/json"} if json_mode else None
+    cfg = {"temperature": 0.2}
+    if json_mode:
+        cfg["response_mime_type"] = "application/json"
     last_err = None
     attempts = len(BACKOFF) + 1
 

@@ -3,8 +3,10 @@
 Usage:
     python market_brief.py            # build and post to Discord
     python market_brief.py --dry-run  # print text and save the image, post nothing
+    python market_brief.py --force    # run even if the market is closed today
 """
 import sys
+import traceback
 
 import config
 import market
@@ -13,10 +15,14 @@ import render
 from brief import write_brief
 from portfolio import load_holdings
 from recommendations import build_recommendations
+from trading_day import today_session
 
 
-def main():
-    dry_run = "--dry-run" in sys.argv
+def run(dry_run=False, force=False):
+    session = today_session()
+    if session is None and not force:
+        print("Market closed today (NYSE holiday or weekend). No brief. Use --force to run anyway.")
+        return
 
     rows = market.get_quotes(load_holdings(config.HOLDINGS_FILE))
     t = market.totals(rows)
@@ -33,11 +39,16 @@ def main():
 
     image = None
     try:
-        image = render.render_card(rows, recs["table"] if recs else None, config.CARD_FILE)
+        image = render.render_card(
+            rows,
+            recs["table"] if recs else None,
+            config.CARD_FILE,
+            cap_table=recs["cap_table"] if recs else None,
+        )
     except Exception as e:  # text still posts without the image
         print(f"Table image failed: {e}")
 
-    text = notify.compose(brief_text, t, recs, missing)
+    text = notify.compose(brief_text, t, recs, missing, session)
 
     if dry_run:
         print(text)
@@ -46,6 +57,19 @@ def main():
 
     notify.post(text, image)
     print("Brief sent.")
+
+
+def main():
+    dry_run = "--dry-run" in sys.argv
+    force = "--force" in sys.argv
+    try:
+        run(dry_run, force)
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(notify.redact(tb), file=sys.stderr)  # never print the webhook token
+        if not dry_run:
+            notify.post_alert(e, tb)  # so a broken run isn't silent
+        sys.exit(1)
 
 
 if __name__ == "__main__":

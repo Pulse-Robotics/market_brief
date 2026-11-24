@@ -7,7 +7,8 @@ Each run:
 1. Reads your holdings from a Yahoo Finance portfolio export
 2. Pulls fresh prices, previous closes and company-specific headlines from Yahoo
 3. Has Gemini write a short summary of what moved and why
-4. Compares your sector mix with the S&P 500 and suggests stocks to research
+4. Compares your sector mix with the S&P 500, breaks down large/mid/small cap exposure,
+   and suggests stocks to research in each cap tier
 5. Renders the holdings and sector tables as one image, since Discord can't display Markdown tables
 6. Posts one Markdown message with the image attached to a Discord channel through a webhook
 
@@ -27,8 +28,11 @@ Semis led a sharp tech selloff while defense and retail held up.
 - JPM · Fills the financials gap; largest US bank with diversified revenue.
 ```
 
-The image has a **Holdings** table (price, day %, weight bar, gain since purchase) and a
-**Sector Balance** table (your weight vs the market, an over/under bar, and the sector ETF's 1-month move).
+The image has three tables:
+- **Holdings**: price, day %, weight bar, gain since purchase
+- **Market Cap**: your weight in large / mid / small caps, which holdings sit in each, and the
+  1-month move of SPY / MDY / IWM
+- **Sector Balance**: your weight vs the market, an over/under bar, and the sector ETF's 1-month move
 
 ---
 
@@ -115,7 +119,12 @@ adjust for splits, so check share counts against your brokerage after a split.
 ```bash
 python market_brief.py --dry-run   # print the text and save brief_card.png, post nothing
 python market_brief.py             # build and post to Discord
+python market_brief.py --force     # run even if the market is closed today
 ```
+
+On NYSE holidays and weekends the script exits without posting. On early-close days (like the day
+after Thanksgiving) the brief says so in the header. If a run crashes, it posts a short
+**⚠️ Market brief failed** message with the error to the same channel, so failures aren't silent.
 
 Always try `--dry-run` first after changing anything.
 
@@ -135,7 +144,6 @@ CRON_TZ=America/New_York
 `CRON_TZ` keeps the run at 9:00 Eastern through daylight-saving changes. Check `brief.log` if a brief
 doesn't arrive.
 
-> The script doesn't skip market holidays yet. On those days it posts the most recent session's data.
 
 ---
 
@@ -150,6 +158,7 @@ market_brief/
 ├── ai.py                # Gemini calls: retries, model fallback, JSON mode
 ├── brief.py             # the daily "what moved and why" summary
 ├── recommendations.py   # sector balance vs market, ideas to research
+├── trading_day.py       # NYSE calendar: holidays and early closes
 ├── render.py            # draws the holdings and sector tables as a PNG
 ├── notify.py            # composes the Discord message and uploads the image
 ├── requirements.txt
@@ -169,8 +178,12 @@ market_brief/
 - **Gemini** calls retry busy and rate-limit errors (5s, 15s, 45s), then move to the next model in
   `GEMINI_MODELS`. If every model fails, later calls in the same run skip straight to the fallback,
   and the brief still posts with the raw numbers.
-- **Suggestions** are checked against Yahoo: tickers that don't exist, that you already own, or that aren't
-  the configured type (e.g. an ETF when `SUGGESTIONS=stocks`) are dropped.
+- **Market cap** tiers: large >$10B, mid $2–10B, small $300M–2B, micro below that. Stocks use Yahoo's
+  market cap. Funds use Yahoo's category ("Large Blend", "Mid-Cap Growth", ...).
+- **Suggestions** come in three tiers: 2 large, 2 mid and 2 small cap. Every ticker is checked on Yahoo
+  and filed under its *actual* tier, whatever the AI labeled it. Tickers that don't exist, that you already
+  own, that are micro caps, or that aren't the configured type (e.g. an ETF when `SUGGESTIONS=stocks`)
+  are dropped.
 - **The table image** is drawn with matplotlib on a dark theme and saved as `brief_card.png` on each run.
   If rendering fails, the text still posts.
 
@@ -186,6 +199,7 @@ market_brief/
 | `No price data from Yahoo: XYZ` | Run `python -c "import yfinance as yf; print(yf.Ticker('XYZ').history(period='5d'))"`. If it's empty, run `pip install -U yfinance` |
 | Wrong daily % right after a split | Re-export the portfolio and confirm share counts match your brokerage |
 | `running scripts is disabled` (Windows) | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`, or call `.venv\Scripts\python` directly |
+| Nothing posted on a weekday | Check whether it was an NYSE holiday (the log says "Market closed today") |
 | Nothing posts from cron | Check `brief.log`, and confirm the cron line uses the venv's Python and `cd`s into the project |
 
 ---

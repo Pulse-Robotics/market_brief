@@ -1,4 +1,4 @@
-"""Everything that talks to Yahoo Finance: prices, headlines, sectors, momentum."""
+"""Everything that talks to Yahoo Finance: prices, headlines, sectors, size, momentum."""
 import math
 import re
 
@@ -34,6 +34,14 @@ SECTOR_ETFS = {
     "realestate": "XLRE",
     "utilities": "XLU",
 }
+
+# Market-cap tiers (common US convention)
+CAP_TIERS = [("large", 10e9), ("mid", 2e9), ("small", 300e6), ("micro", 0)]
+CAP_LABELS = {"large": "Large cap", "mid": "Mid cap", "small": "Small cap",
+              "micro": "Micro cap", "unknown": "Unknown"}
+
+# Size ETFs, used as a sentiment proxy per tier
+CAP_ETFS = {"large": "SPY", "mid": "MDY", "small": "IWM"}
 
 # Corporate suffixes to strip so "NVIDIA Corporation" -> "NVIDIA"
 SUFFIXES = re.compile(
@@ -75,6 +83,34 @@ def holding_sectors(stock, info):
     if qtype in ("ETF", "MUTUALFUND"):
         return fund_sectors(stock)
     return {}
+
+
+def tier_for_cap(market_cap):
+    try:
+        cap = float(market_cap)
+    except (TypeError, ValueError):
+        return "unknown"
+    for tier, floor in CAP_TIERS:
+        if cap >= floor:
+            return tier
+    return "unknown"
+
+
+def holding_tier(info):
+    """'large' / 'mid' / 'small' / 'micro' / 'unknown' for one holding.
+
+    Stocks use market cap. Funds use Yahoo's category ("Large Blend",
+    "Mid-Cap Growth", "Small Value", ...).
+    """
+    qtype = info.get("quoteType")
+    if qtype == "EQUITY":
+        return tier_for_cap(info.get("marketCap"))
+    if qtype in ("ETF", "MUTUALFUND"):
+        cat = (info.get("category") or "").lower()
+        for tier in ("large", "mid", "small"):
+            if tier in cat:
+                return tier
+    return "unknown"
 
 
 # ---------------------------------------------------------------- headlines
@@ -167,6 +203,7 @@ def get_quotes(holdings):
             "cost": cost,
             "gain_pct": (value - cost) / cost * 100 if cost else None,
             "sectors": holding_sectors(stock, info),
+            "tier": holding_tier(info),
             "news": headline_titles(stock, symbol, info),
         })
     return rows
@@ -195,10 +232,10 @@ def benchmark_sectors(symbol):
     return {k: v * 100 for k, v in fund_sectors(yf.Ticker(symbol)).items()}
 
 
-def sector_momentum():
-    """{sector: {"5d": pct, "1m": pct}} from sector ETF prices."""
+def _momentum(etfs):
+    """{key: {"5d": pct, "1m": pct}} from each ETF's last month of prices."""
     out = {}
-    for sector, etf in SECTOR_ETFS.items():
+    for key, etf in etfs.items():
         try:
             close = yf.Ticker(etf).history(period="1mo")["Close"].dropna()
         except Exception:
@@ -206,19 +243,30 @@ def sector_momentum():
         if len(close) < 6:
             continue
         last = close.iloc[-1]
-        out[sector] = {
+        out[key] = {
             "5d": (last / close.iloc[-6] - 1) * 100,
             "1m": (last / close.iloc[0] - 1) * 100,
         }
     return out
 
 
-def lookup_type(symbol):
-    """Yahoo quoteType ('EQUITY', 'ETF', ...) if the symbol trades, else None."""
+def sector_momentum():
+    """{sector: {"5d", "1m"}} from SPDR sector ETFs."""
+    return _momentum(SECTOR_ETFS)
+
+
+def size_momentum():
+    """{tier: {"5d", "1m"}} from SPY / MDY / IWM."""
+    return _momentum(CAP_ETFS)
+
+
+def lookup(symbol):
+    """(quoteType, cap tier) if the symbol trades on Yahoo, else (None, None)."""
     stock = yf.Ticker(symbol)
     try:
         if len(stock.history(period="5d")) == 0:
-            return None
+            return None, None
     except Exception:
-        return None
-    return safe_info(stock).get("quoteType") or "UNKNOWN"
+        return None, None
+    info = safe_info(stock)
+    return info.get("quoteType") or "UNKNOWN", holding_tier(info)

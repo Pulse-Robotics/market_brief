@@ -147,9 +147,37 @@ def _sectors(ax, y, table):
     return y
 
 
+def _caps(ax, y, table):
+    y = _title(ax, y, "Market Cap", "Large >$10B  ·  Mid $2–10B  ·  Small $300M–2B  ·  1M = size ETF")
+    cols = [("Size", LEFT + 20, "left"), ("You", 300, "right"),
+            ("Holdings", 548, "left"), ("1M", RIGHT - 20, "right")]
+    y = _header(ax, y, cols)
+
+    for i, r in enumerate(table):
+        yc = _stripe(ax, y, i)
+        ax.text(LEFT + 20, yc, market.CAP_LABELS.get(r["tier"], r["tier"]), color=TEXT,
+                fontsize=12.5, va="center", ha="left")
+        ax.text(300, yc, f"{r['you']:.0f}%", color=TEXT, fontsize=12,
+                fontweight="bold", va="center", ha="right")
+        bar_x, bar_max = 318, 200
+        _bar(ax, bar_x, yc, bar_max, RULE)
+        _bar(ax, bar_x, yc, bar_max * r["you"] / 100, BLUE)
+        held = r["holdings"]
+        names = ", ".join(held[:4]) + (f"  +{len(held) - 4}" if len(held) > 4 else "") if held else "–"
+        ax.text(548, yc, names, color=MUTED, fontsize=10.5, va="center", ha="left")
+        if r["1m"] is not None:
+            label = f"{_pct(r['1m'])}"
+            ax.text(RIGHT - 20, yc, label, color=_color(r["1m"]), fontsize=12,
+                    va="center", ha="right")
+            ax.text(RIGHT - 95, yc, r["etf"], color=MUTED, fontsize=9.5,
+                    va="center", ha="right")
+        y += ROW
+    return y
+
+
 # ---------------------------------------------------------------- public
 
-def render_card(rows, sector_table, path):
+def render_card(rows, sector_table, path, cap_table=None):
     """Draw the card and save it to `path`. Returns the path."""
     good = sorted((r for r in rows if r["ok"]), key=lambda r: r["value"], reverse=True)
     total_value = sum(r["value"] for r in good)
@@ -158,7 +186,11 @@ def render_card(rows, sector_table, path):
         if s["you"] >= 0.5 or (s["mkt"] or 0) >= 0.5
     ]
 
+    caps = cap_table or []
+
     height = PAD + TITLE + HEAD + ROW * len(good) + FOOT + PAD
+    if caps:
+        height += GAP + TITLE + HEAD + ROW * len(caps)
     if sectors:
         height += GAP + TITLE + HEAD + ROW * len(sectors)
 
@@ -170,6 +202,8 @@ def render_card(rows, sector_table, path):
     fig.patch.set_facecolor(BG)
 
     y = _holdings(ax, PAD, good, total_value)
+    if caps:
+        y = _caps(ax, y + GAP, caps)
     if sectors:
         y = _sectors(ax, y + GAP, sectors)
 
