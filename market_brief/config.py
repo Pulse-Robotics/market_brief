@@ -4,15 +4,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Where .env, portfolio/, img/ and logs/ live:
-#   - MARKET_BRIEF_HOME if set
-#   - otherwise the repo root, when running from a checkout
-#   - otherwise the current directory (pip-installed package)
-_PKG_PARENT = Path(__file__).resolve().parent.parent
-BASE = Path(
-    os.getenv("MARKET_BRIEF_HOME")
-    or (_PKG_PARENT if (_PKG_PARENT / "main.py").exists() else Path.cwd())
-).resolve()
+# Where .env, portfolio/, img/ and logs/ live: MARKET_BRIEF_HOME if set,
+# otherwise the folder you run the command from. (`python main.py` sets
+# MARKET_BRIEF_HOME to the repo folder, so a checkout always uses itself.)
+BASE = Path(os.getenv("MARKET_BRIEF_HOME") or Path.cwd()).resolve()
 load_dotenv(BASE / ".env", override=True)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
